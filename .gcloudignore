@@ -15,5 +15,9 @@
 
 # Python pycache:
 __pycache__/
+# Python virtual env:
+venv
+# test database
+db.sqlite3
 # Ignored by the build system
 /setup.cfg

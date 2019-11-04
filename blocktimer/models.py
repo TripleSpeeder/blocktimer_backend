@@ -10,12 +10,15 @@ class BlockManager(models.Manager):
         except Block.DoesNotExist:
             # Need to find the block with timestamp closest to provided value
             # define searchrange. Add 4 minutes in both directions, should produce plenty results
-            searchRange = range(timestamp - 240, timestamp + 240)
+            searchRange = range(timestamp - 240, timestamp+240)
             # Django magic:
-            #   - get all blocks which timestamp is within searchrange
+            #   - get all blocks which timestamps are within searchrange
             #   - annotate blocks with the absolute timedelta to the requested timestamp
             #   - order results by the annotated delta value (ascending)
             #   - Return first result (which is the block with the smallest delta)
+            # NOTE - In order for the annotate to work with MySQL the database needs to
+            # run with sql_mode = 'NO_UNSIGNED_SUBTRACTION'. Make sure this is configured
+            # in the database settings!
             block = Block.objects.filter(timestamp__range=(searchRange.start, searchRange.stop))\
                 .annotate(delta=Func((F('timestamp') - timestamp), function='ABS'))\
                 .order_by('delta')\

@@ -11,8 +11,11 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 import os
+from web3 import Web3
+from decouple import config
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -20,12 +23,15 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'xldvnomet&(39us&-_i#s@3ymo0d^8!_5ul!h4la-nj2*6iya5'
-
+SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = []
+# SECURITY WARNING: App Engine's security features ensure that it is safe to
+# have ALLOWED_HOSTS = ['*'] when the app is deployed. If you deploy a Django
+# app not on App Engine, make sure to set an appropriate host here.
+# See https://docs.djangoproject.com/en/2.1/ref/settings/
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -94,9 +100,12 @@ if os.getenv('GAE_APPLICATION', None):
         'default': {
             'ENGINE': 'django.db.backends.mysql',
             'HOST': '/cloudsql/blocktimer-backend:europe-west1:blocktimer-instance',
-            'USER': 'blocktimer',
-            'PASSWORD': 'blocktimer',
+            'USER': config('DATABASE_USER'),
+            'PASSWORD': config('DATABASE_PASSWORD'),
             'NAME': 'blocktimer',
+            'OPTIONS': {
+                'init_command': "SET sql_mode = 'NO_UNSIGNED_SUBTRACTION';"
+            }
         }
     }
 else:
@@ -112,8 +121,11 @@ else:
             'HOST': '127.0.0.1',
             'PORT': '3306',
             'NAME': 'blocktimer',
-            'USER': 'blocktimer',
-            'PASSWORD': 'blocktimer',
+            'USER': config('DATABASE_USER'),
+            'PASSWORD': config('DATABASE_PASSWORD'),
+            'OPTIONS': {
+                'init_command': "SET sql_mode = 'NO_UNSIGNED_SUBTRACTION';"
+            }
         }
     }
 # [END db_setup]
@@ -167,3 +179,35 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 STATIC_ROOT = 'static'
 STATIC_URL = '/static/'
+
+# Web3 provider
+if os.getenv('GAE_APPLICATION', None):
+    # Running on production App Engine, so connect to INFURA websocket
+    WEBSOCKET_PROVIDERSTRING="wss://mainnet.infura.io/ws/v3/" + config('INFURA_PROJECT_ID')
+else:
+    # Assume an available IPC connection on local filesystem
+    IPC_PROVIDERSTRING='~/.ethereum/geth.ipc'
+
+# Logging
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'blocktimer.management.commands': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'blocktimer.utils': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        }
+    }
+}

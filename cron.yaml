@@ -1,0 +1,4 @@
+cron:
+- description: "import blocks"
+  url: /import
+  schedule: every 2 minutes synchronized
